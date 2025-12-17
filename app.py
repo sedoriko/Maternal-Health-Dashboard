@@ -9,57 +9,31 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- CSS STYLING ---
+# --- ADAPTIVE CSS STYLING ---
+# This CSS works for BOTH Light and Dark modes by avoiding hardcoded background colors
 st.markdown("""
     <style>
-        /* 1. Main Background - Dark */
-        .stApp {
-            background-color: #0E1117;
-            color: #FAFAFA;
-        }
-        
-        /* 2. Sidebar Background */
-        section[data-testid="stSidebar"] {
-            background-color: #262730;
-        }
-        
-        /* 3. Text Coloring */
-        h1, h2, h3, h4, h5, h6, p, label, .stMarkdown {
-            color: #FAFAFA !important;
-        }
-        
-        /* 4. FIX FOR DROPDOWNS & INPUTS */
-        div[data-baseweb="select"] > div, div[data-baseweb="input"] > div {
-            background-color: #1E1E1E !important;
-            color: white !important;
-            border-color: #41444e !important;
-        }
-        div[data-baseweb="popover"], div[data-baseweb="menu"] {
-            background-color: #262730 !important;
-        }
-        div[data-baseweb="select"] span, div[data-baseweb="menu"] li {
-            color: white !important;
-        }
-        
-        /* 5. METRIC CARDS - UNIFORM SIZE STYLING */
+        /* 1. Metric Cards - Adaptive Styling */
         div[data-testid="stMetric"] {
-            background-color: #262730;
-            border: 1px solid #41444e;
+            /* No background color set here -> Uses Streamlit's default (White/Dark Grey) */
+            border: 1px solid rgba(128, 128, 128, 0.2);
             border-left: 5px solid #FF4B4B; /* Red Accent */
             border-radius: 5px;
             padding: 15px;
-            min-height: 120px; /* Force consistent height */
+            min-height: 120px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Subtle shadow for depth */
         }
         
-        /* 6. Footer Styling */
+        /* 2. Footer Styling - Adaptive */
         .footer {
             width: 100%;
-            background-color: #0E1117;
-            color: #bdc3c7;
+            /* Use transparent background to blend with theme */
+            background-color: transparent;
+            color: gray;
             text-align: center;
             padding: 30px;
             margin-top: 50px;
-            border-top: 1px solid #41444e;
+            border-top: 1px solid rgba(128, 128, 128, 0.2);
             font-size: 14px;
         }
         .footer a {
@@ -68,9 +42,9 @@ st.markdown("""
             text-decoration: none;
         }
         
-        /* 7. Remove White Background from Dataframes */
+        /* 3. Remove default background from Dataframes to let them blend */
         .stDataFrame {
-            background-color: #262730;
+            background-color: transparent;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -171,7 +145,7 @@ if not filtered_cause.empty:
     top_cause_row = filtered_cause.groupby('Cause')['Deaths'].sum().reset_index().sort_values('Deaths', ascending=False).iloc[0]
     full_cause_name = top_cause_row['Cause']
     
-    # TRUNCATE LOGIC: Keep cards same size, show full text in hover tooltip
+    # TRUNCATE LOGIC
     if len(full_cause_name) > 22:
         display_name = full_cause_name[:22] + "..."
     else:
@@ -181,7 +155,7 @@ else:
     display_name = "None"
 
 c1, c2, c3 = st.columns(3)
-# Note the 'help' parameter - this creates the hover tooltip
+# The 'help' tooltip works in both modes
 c1.metric("Total Deaths (Selection)", f"{total_deaths:,}")
 c2.metric("Deaths in Selected Islands", f"{geo_deaths:,}")
 c3.metric("Leading Complication", display_name, help=f"Full Name: {full_cause_name}") 
@@ -191,6 +165,9 @@ st.markdown("<br>", unsafe_allow_html=True)
 # CHARTS ROW 1
 col_left, col_right = st.columns([2, 1])
 
+# Determine current theme using Streamlit's config logic is complex, 
+# so we rely on transparent backgrounds and standard templates.
+
 with col_left:
     st.subheader("🩺 Top 10 Complications")
     if not filtered_cause.empty:
@@ -199,16 +176,17 @@ with col_left:
         fig_bar = px.bar(cause_summary, x='Deaths', y='Cause', orientation='h', 
                          text='Deaths', 
                          color='Deaths', 
-                         color_continuous_scale='Reds',
-                         template="plotly_dark")
+                         color_continuous_scale='Reds')
         
+        # Transparent background allows it to work on White or Dark
         fig_bar.update_layout(
             yaxis={'categoryorder':'total ascending', 'title': None},
             xaxis={'title': 'Number of Deaths'},
             margin=dict(l=0, r=0, t=10, b=0),
             height=400,
             paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)'
+            plot_bgcolor='rgba(0,0,0,0)',
+            font=dict(color=None) # Auto-detect font color
         )
         st.plotly_chart(fig_bar, use_container_width=True)
     else:
@@ -220,14 +198,14 @@ with col_right:
         age_summary = filtered_cause.groupby('Age Group')['Deaths'].sum().reset_index()
         
         fig_pie = px.pie(age_summary, values='Deaths', names='Age Group', hole=0.5,
-                         color_discrete_sequence=px.colors.qualitative.Pastel,
-                         template="plotly_dark")
+                         color_discrete_sequence=px.colors.qualitative.Pastel)
         
         fig_pie.update_layout(
             legend=dict(orientation="h", yanchor="bottom", y=-0.3),
             margin=dict(l=0, r=0, t=0, b=0),
             height=400,
-            paper_bgcolor='rgba(0,0,0,0)'
+            paper_bgcolor='rgba(0,0,0,0)',
+            font=dict(color=None) # Auto-detect font color
         )
         st.plotly_chart(fig_pie, use_container_width=True)
 
@@ -241,14 +219,14 @@ if not regions_only.empty:
     fig_map = px.bar(geo_summary, x='Place', y='Deaths', 
                      color='Deaths', 
                      color_continuous_scale='Teal',
-                     labels={'Place': 'Region'},
-                     template="plotly_dark")
+                     labels={'Place': 'Region'})
     
     fig_map.update_layout(
         xaxis_tickangle=-45,
         margin=dict(l=0, r=0, t=10, b=80),
         paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)'
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(color=None)
     )
     st.plotly_chart(fig_map, use_container_width=True)
 else:
