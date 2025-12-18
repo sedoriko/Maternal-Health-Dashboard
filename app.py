@@ -10,24 +10,21 @@ st.set_page_config(
 )
 
 # --- ADAPTIVE CSS STYLING ---
-# This CSS works for BOTH Light and Dark modes by avoiding hardcoded background colors
 st.markdown("""
     <style>
         /* 1. Metric Cards - Adaptive Styling */
         div[data-testid="stMetric"] {
-            /* No background color set here -> Uses Streamlit's default (White/Dark Grey) */
             border: 1px solid rgba(128, 128, 128, 0.2);
             border-left: 5px solid #FF4B4B; /* Red Accent */
             border-radius: 5px;
             padding: 15px;
             min-height: 120px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Subtle shadow for depth */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         
         /* 2. Footer Styling - Adaptive */
         .footer {
             width: 100%;
-            /* Use transparent background to blend with theme */
             background-color: transparent;
             color: gray;
             text-align: center;
@@ -42,7 +39,7 @@ st.markdown("""
             text-decoration: none;
         }
         
-        /* 3. Remove default background from Dataframes to let them blend */
+        /* 3. Remove default background from Dataframes */
         .stDataFrame {
             background-color: transparent;
         }
@@ -101,6 +98,17 @@ except Exception as e:
 with st.sidebar:
     st.title("📊 Filter Data")
     
+    # Complication Filter 
+    # Get unique list of causes from the data, sorted alphabetically
+    unique_causes = sorted(df_cause['Cause'].astype(str).unique())
+    
+    selected_complications = st.multiselect(
+        "Select Specific Complication(s):", 
+        options=unique_causes,
+        placeholder="Type to search or select..."
+    )
+
+    #  Age Filter
     selected_age = st.multiselect(
         "Filter by Age Group:", 
         options=df_cause['Age Group'].unique(), 
@@ -109,12 +117,13 @@ with st.sidebar:
     
     st.markdown("---")
     
+    # Island Filter
     island_options = ['Luzon', 'Visayas', 'Mindanao']
     selected_island = st.multiselect("Region / Island Group:", island_options, default=island_options)
     
     st.markdown("---")
     
-    search_cause = st.text_input("Search Complication", placeholder="e.g. Hypertension")
+    
 
 # FILTER LOGIC
 if selected_age:
@@ -127,8 +136,9 @@ else:
 if selected_island:
     filtered_geo = filtered_geo[filtered_geo['Island Group'].isin(selected_island)]
 
-if search_cause:
-    filtered_cause = filtered_cause[filtered_cause['Cause'].str.contains(search_cause, case=False, na=False)]
+# UPDATED LOGIC: Filter by Selected Complications if any are chosen
+if selected_complications:
+    filtered_cause = filtered_cause[filtered_cause['Cause'].isin(selected_complications)]
 
 # --- DASHBOARD UI ---
 
@@ -155,7 +165,6 @@ else:
     display_name = "None"
 
 c1, c2, c3 = st.columns(3)
-# The 'help' tooltip works in both modes
 c1.metric("Total Deaths (Selection)", f"{total_deaths:,}")
 c2.metric("Deaths in Selected Islands", f"{geo_deaths:,}")
 c3.metric("Leading Complication", display_name, help=f"Full Name: {full_cause_name}") 
@@ -164,9 +173,6 @@ st.markdown("<br>", unsafe_allow_html=True)
 
 # CHARTS ROW 1
 col_left, col_right = st.columns([2, 1])
-
-# Determine current theme using Streamlit's config logic is complex, 
-# so we rely on transparent backgrounds and standard templates.
 
 with col_left:
     st.subheader("🩺 Top 10 Complications")
@@ -178,7 +184,6 @@ with col_left:
                          color='Deaths', 
                          color_continuous_scale='Reds')
         
-        # Transparent background allows it to work on White or Dark
         fig_bar.update_layout(
             yaxis={'categoryorder':'total ascending', 'title': None},
             xaxis={'title': 'Number of Deaths'},
@@ -186,7 +191,7 @@ with col_left:
             height=400,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(color=None) # Auto-detect font color
+            font=dict(color=None)
         )
         st.plotly_chart(fig_bar, use_container_width=True)
     else:
@@ -205,7 +210,7 @@ with col_right:
             margin=dict(l=0, r=0, t=0, b=0),
             height=400,
             paper_bgcolor='rgba(0,0,0,0)',
-            font=dict(color=None) # Auto-detect font color
+            font=dict(color=None)
         )
         st.plotly_chart(fig_pie, use_container_width=True)
 
@@ -236,7 +241,7 @@ else:
 st.markdown(""" 
 <div class="footer">
     <p><b>Maternal Mortality Risk Profiler: Analyzing common complications leading to maternal deaths in rural areas.</p>
-    <p>Submitted by: <b>John Cedrick B. Dela Corta</b> | Professor: <b>Sir Val Fabregas</b></p>
+    <p>Submitted by: <b>John Cedrick B. Dela Corta</b> | Instructor: <b>Engr. Val Patrick Fabregas, MTA</b></p>
     <p>
         Data Source: 
         <a href="https://psa.gov.ph/statistics/vital-statistics/report" target="_blank">
