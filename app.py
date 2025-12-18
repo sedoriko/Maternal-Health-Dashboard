@@ -237,6 +237,19 @@ if not regions_only.empty:
 else:
     st.warning("No regions match your filter.")
 
+# --- RAW DATA EXPLORER  ---
+with st.expander("View Raw Data Tables", expanded=False):
+    tab1, tab2 = st.tabs(["Causes of Death", "Geography/Location"])
+    
+    with tab1:
+        st.write(f"Showing **{len(filtered_cause)}** records based on current filters.")
+        st.dataframe(filtered_cause, use_container_width=True)
+        
+    with tab2:
+        st.write(f"Showing **{len(filtered_geo)}** records based on current filters.")
+        st.dataframe(filtered_geo, use_container_width=True)
+
+
 # --- FOOTER ---
 st.markdown(""" 
 <div class="footer">
